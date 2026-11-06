@@ -1,0 +1,2 @@
+# Dá ao usuário logado acesso ao hidraw do dongle JBL Quantum 810 Wireless
+KERNEL=="hidraw*", ATTRS{idVendor}=="0ecb", ATTRS{idProduct}=="2069", TAG+="uaccess"
