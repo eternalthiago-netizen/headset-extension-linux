@@ -1,6 +1,6 @@
 {
   "uuid": "jbl-quantum810@local",
   "name": "JBL Quantum 810",
-  "description": "Mostra a bateria do JBL Quantum 810 na barra superior e controla a iluminação e a cor.",
+  "description": "Shows the JBL Quantum 810 battery in the top bar and controls its lighting and color.",
   "shell-version": ["45", "46", "47", "48", "49"]
 }

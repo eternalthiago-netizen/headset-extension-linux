@@ -11,13 +11,13 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
-// Pacote .deb instala em /usr/bin; instalação manual fica em ~/.local/bin
+// The .deb package installs to /usr/bin; a manual install lives in ~/.local/bin
 const SCRIPT = GLib.find_program_in_path('quantum810') ??
     GLib.build_filenamev([GLib.get_home_dir(), '.local', 'bin', 'quantum810']);
 const POLL_SECONDS = 60;
-// Alertas de bateria baixa (o headset informa em degraus de 5%)
+// Low-battery alerts (the headset reports in 5% steps)
 const LOW_THRESHOLDS = [20, 10];
-const REARM_AT = 30;   // carregou acima disso: os alertas voltam a valer
+const REARM_AT = 30;   // charged above this: the alerts are re-armed
 const ALERTS_FILE = GLib.build_filenamev([GLib.get_user_cache_dir(), 'jbl-quantum810-alerts.json']);
 
 function loadSent() {
@@ -44,29 +44,29 @@ function batteryStyle(pct) {
         return 'color: #ffb347;';
     return '';
 }
-const ANC = {0: 'Desligado', 1: 'Ligado', 2: 'TalkThru'};
-// chave: [rótulo, [[valor no headset, argumento do script, rótulo], ...]]
+const ANC = {0: 'Off', 1: 'On', 2: 'TalkThru'};
+// key: [label, [[headset value, script argument, label], ...]]
 const SETTINGS = {
-    anc: ['Cancelamento de ruído', [[0, 'off', 'Desligado'], [1, 'on', 'Ligado'], [2, 'talkthru', 'TalkThru']]],
-    sidetone: ['Sidetone', [[0, 'off', 'Desligado'], [1, 'low', 'Baixo'], [2, 'mid', 'Médio'], [3, 'high', 'Alto']]],
-    autooff: ['Desligamento automático', [[0, 'never', 'Nunca'], [6, '30', '30 min'], [12, '60', '1 h'], [24, '120', '2 h']]],
+    anc: ['Noise cancelling', [[0, 'off', 'Off'], [1, 'on', 'On'], [2, 'talkthru', 'TalkThru']]],
+    sidetone: ['Sidetone', [[0, 'off', 'Off'], [1, 'low', 'Low'], [2, 'mid', 'Mid'], [3, 'high', 'High']]],
+    autooff: ['Auto power-off', [[0, 'never', 'Never'], [6, '30', '30 min'], [12, '60', '1 h'], [24, '120', '2 h']]],
 };
-const MIC = {0: 'Mudo', 1: 'Ativo'};
-const SIDETONE = {0: 'Desligado', 1: 'Baixo', 2: 'Médio', 3: 'Alto'};
+const MIC = {0: 'Muted', 1: 'Active'};
+const SIDETONE = {0: 'Off', 1: 'Low', 2: 'Mid', 3: 'High'};
 
 function autoOff(v) {
     if (v === null || v === undefined)
         return '—';
     if (v === 0)
-        return 'Nunca';
+        return 'Never';
     const min = v * 5;
     return min < 60 ? `${min} min` : `${min / 60} h`;
 }
 
 const COLORS = [
-    ['Vermelho', 'ff0000'], ['Verde', '00ff00'], ['Azul', '0000ff'], ['Branco', 'ffffff'],
-    ['Roxo', '8000ff'], ['Laranja', 'ff6000'], ['Ciano', '33ffcc'], ['Rosa', 'ff0099'],
-    ['Verde + Amarelo', '00ff00,ffff00'],
+    ['Red', 'ff0000'], ['Green', '00ff00'], ['Blue', '0000ff'], ['White', 'ffffff'],
+    ['Purple', '8000ff'], ['Orange', 'ff6000'], ['Cyan', '33ffcc'], ['Pink', 'ff0099'],
+    ['Green + Yellow', '00ff00,ffff00'],
 ];
 
 function run(args) {
@@ -89,7 +89,7 @@ class Indicator extends PanelMenu.Button {
     _init() {
         super._init(0.0, 'JBL Quantum 810');
 
-        // panel-status-menu-box = ícone + texto lado a lado (como relógio/teclado)
+        // panel-status-menu-box = icon + text side by side (like clock/keyboard)
         const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._icon = new St.Icon({icon_name: 'audio-headset-symbolic', style_class: 'system-status-icon'});
         this._label = new St.Label({text: '…', y_align: Clutter.ActorAlign.CENTER});
@@ -119,7 +119,7 @@ class Indicator extends PanelMenu.Button {
             this._settings[key] = [label, sub];
         }
 
-        for (const [key, label] of [['mic', 'Microfone'], ['mix', 'Mix jogo/chat']]) {
+        for (const [key, label] of [['mic', 'Microphone'], ['mix', 'Game/chat mix']]) {
             const item = new PopupMenu.PopupMenuItem(label, {reactive: false});
             const value = new St.Label({text: '—', x_expand: true, x_align: Clutter.ActorAlign.END,
                 y_align: Clutter.ActorAlign.CENTER});
@@ -130,13 +130,13 @@ class Indicator extends PanelMenu.Button {
         this._jblSep = new PopupMenu.PopupSeparatorMenuItem();
         this.menu.addMenuItem(this._jblSep);
 
-        this._lights = new PopupMenu.PopupSwitchMenuItem('Iluminação', false);
+        this._lights = new PopupMenu.PopupSwitchMenuItem('Lighting', false);
         this._lights.connect('toggled', (_item, state) => {
             run(['--lights', state ? 'on' : 'off']).then(() => this.refresh()).catch(logError);
         });
         this.menu.addMenuItem(this._lights);
 
-        this._colors = new PopupMenu.PopupSubMenuMenuItem('Cor');
+        this._colors = new PopupMenu.PopupSubMenuMenuItem('Color');
         for (const [name, hex] of COLORS) {
             const item = new PopupMenu.PopupMenuItem(name);
             item.insert_child_at_index(new St.Widget({
@@ -144,14 +144,14 @@ class Indicator extends PanelMenu.Button {
                 y_align: Clutter.ActorAlign.CENTER,
             }), 1);
             item.connect('activate', () => {
-                this._info.label.text = `Aplicando cor ${name}…`;
+                this._info.label.text = `Applying color ${name}…`;
                 run(['--color', hex]).then(() => this.refresh()).catch(logError);
             });
             this._colors.menu.addMenuItem(item);
         }
         this.menu.addMenuItem(this._colors);
 
-        const refresh = new PopupMenu.PopupMenuItem('Atualizar');
+        const refresh = new PopupMenu.PopupMenuItem('Refresh');
         refresh.connect('activate', () => this.refresh());
         this.menu.addMenuItem(refresh);
 
@@ -178,15 +178,15 @@ class Indicator extends PanelMenu.Button {
             this._label.text = '';
             this._label.style = '';
             this._icon.opacity = 110;
-            this._info.label.text = st.error ?? 'Headset desligado ou fora de alcance';
+            this._info.label.text = st.error ?? 'Headset off or out of range';
         } else {
             this._label.text = `${st.battery}%`;
             this._label.style = batteryStyle(st.battery);
             this._icon.opacity = 255;
-            this._info.label.text = `${st.name ?? 'Fone'}: ${st.battery}%`;
-            this._checkBattery(st.battery, st.name ?? 'Fone');
+            this._info.label.text = `${st.name ?? 'Headphones'}: ${st.battery}%`;
+            this._checkBattery(st.battery, st.name ?? 'Headphones');
         }
-        // Fone Bluetooth: só bateria; os controles abaixo são exclusivos do JBL
+        // Bluetooth headphones: battery only; the controls below are JBL-only
         const jbl = st.source !== 'bluetooth';
         for (const item of [this._jblSep, this._lights, this._colors,
             ...Object.values(this._settings).map(([, sub]) => sub),
@@ -208,7 +208,7 @@ class Indicator extends PanelMenu.Button {
         this._lights.setToggleState(st.lights === 1);
         this._colors.setSensitive(st.lights !== null);
         const cur = COLORS.find(([, hex]) => hex === st.color);
-        this._colors.label.text = cur ? `Cor: ${cur[0]}` : (st.color ? `Cor: #${st.color}` : 'Cor');
+        this._colors.label.text = cur ? `Color: ${cur[0]}` : (st.color ? `Color: #${st.color}` : 'Color');
     }
 
     _checkBattery(pct, name) {
@@ -226,8 +226,8 @@ class Indicator extends PanelMenu.Button {
         const source = MessageTray.getSystemSource();
         source.addNotification(new MessageTray.Notification({
             source,
-            title: `${name}: bateria em ${pct}%`,
-            body: critical ? 'Coloque o fone para carregar.' : 'Bateria baixa.',
+            title: `${name}: battery at ${pct}%`,
+            body: critical ? 'Plug in the headset to charge.' : 'Low battery.',
             iconName: critical ? 'battery-level-10-symbolic' : 'battery-level-20-symbolic',
             urgency: critical ? MessageTray.Urgency.CRITICAL : MessageTray.Urgency.NORMAL,
         }));
@@ -245,7 +245,7 @@ class Indicator extends PanelMenu.Button {
 export default class JblQuantumExtension extends Extension {
     enable() {
         this._indicator = new Indicator();
-        // posição 0 da área direita = logo à esquerda dos ícones de rede/som/bateria
+        // position 0 of the right box = just left of the network/sound/battery icons
         Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
     }
 
